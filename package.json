@@ -1,0 +1,26 @@
+{
+  "name": "laya-ver",
+  "version": "1.0.0",
+  "description": "make laya version export allfile to filename_md5!",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js --sourcedir /src_dir --destdir /dest_dir"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xbpiao/laya-ver.git"
+  },
+  "keywords": [
+    "laya", "layacmd"
+  ],  
+  "bin": {
+    "laya-ver": "./bin/laya-ver"
+  },
+  "author": "xbpiao",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^2.17.1",
+    "crypto": "^1.0.1",
+    "path": "^0.12.7"
+  }
+}
