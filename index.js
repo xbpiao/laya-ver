@@ -112,7 +112,7 @@ function rm_dir(directory_path) {
 
 // ============================================================================
 // 预处理相关函数 
-function pre_cache_names(name_strs,p_names, p_exts) {
+function pre_cache_names(name_strs, p_names, p_exts) {
     // 将name_strs的解析结果放到 数组：p_names、p_exts
     // p_names是解析到的名字列表
     // p_exts是解析到的文件扩展名列表
@@ -166,6 +166,19 @@ function check_is_replace(filename) {
     return check_is_in_caches(filename, pro_replace_names, pro_replace_exts);
 }
 
+function calc_md5(curFile) {
+    return new Promise((resolve, reject) => {
+        var md5sum = crypto.createHash('md5');
+        var stream = fs.createReadStream(curFile);
+        stream.on('data', function (chunk) {
+            md5sum.update(chunk);
+        });
+        stream.on('end', function () {
+            var strmd5 = md5sum.digest('hex').toUpperCase();
+            resolve(strmd5);
+        });
+    });
+}
 // ============================================================================
 // 遍历源目录所有文件，复制到目标目录并计算md5
 function scan_src_dir(src_path, dst_path) {
@@ -201,20 +214,6 @@ function scan_src_dir(src_path, dst_path) {
                 }
             }// for
         }
-    }
-
-    function calc_md5(curFile) {
-        return new Promise((resolve, reject) => {
-            var md5sum = crypto.createHash('md5');
-            var stream = fs.createReadStream(curFile);
-            stream.on('data', function (chunk) {
-                md5sum.update(chunk);
-            });
-            stream.on('end', function () {
-                var strmd5 = md5sum.digest('hex').toUpperCase();
-                resolve(strmd5);
-            });
-        });
     }
 
     function pro_file(cur_File, cur_name, cur_dst_path, cur_base_path) {
@@ -271,8 +270,17 @@ function replace_all_html(ver_data, dst_path) {
                 }
 
                 if (fs.statSync(curFile).isFile() === true) {
+                    // 这里判断的是加了md5后的文件名称，可以再处理一下
                     if (check_is_replace(curName)) {
                         replaceFile(curFile);
+                    } else {
+                        // 去掉加md5的值，还原文件名再检查一遍
+                        var cur_chk_ext_name = path.extname(curName);
+                        var cur_chk_base_name = path.basename(curName, cur_chk_ext_name);
+                        var pre_Name = cur_chk_base_name.substring(0, cur_chk_base_name.length - 6) + cur_chk_ext_name;
+                        if (check_is_replace(pre_Name)) {
+                            replaceFile(curFile);
+                        }
                     }// if
                 } else { // 这里定然是目录
                     // 递归扫描下级子目录
@@ -313,13 +321,20 @@ if ((src_dir != "") && (dest_dir != "")) {
     // 参数都有了，开干吧！
     scan_src_dir(src_dir, dest_dir).then((ver_data) => {
         // 写入json文件
-        fs.writeFileSync(path.join(dest_dir, "version.json"), JSON.stringify(ver_data));
-
-        if (program.replace) {
-            // 替换所有html中的相关文本
-            replace_all_html(ver_data, dest_dir);
-        }// if
-        console.log("process success.[" + path.join(dest_dir, "version.json") + "]");
-        console.log("time:" + (new Date().getTime() - start) / 1000.00 + "s");
+        var cur_ver_file = path.join(dest_dir, "version.json");
+        fs.writeFileSync(cur_ver_file, JSON.stringify(ver_data));
+        // 计算version.json的md5
+        calc_md5(cur_ver_file).then((strmd5) => {
+            var ver_md5_file_name = "version" + strmd5.substring(0, 6) + ".json";
+            // 重新写入带version.json的版本号
+            ver_data["version.json"] = ver_md5_file_name;
+            fs.writeFileSync(path.join(dest_dir, ver_md5_file_name), JSON.stringify(ver_data));
+            if (program.replace) {
+                // 替换所有html中的相关文本
+                replace_all_html(ver_data, dest_dir);
+            }// if
+            console.log("process success.[" + path.join(dest_dir, "version.json") + "]");
+            console.log("time:" + (new Date().getTime() - start) / 1000.00 + "s");    
+        });
     });
 }

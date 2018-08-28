@@ -1,6 +1,6 @@
 {
   "name": "laya-ver",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "make laya version export allfile to filename_md5!",
   "main": "index.js",
   "scripts": {
@@ -11,8 +11,12 @@
     "url": "https://github.com/xbpiao/laya-ver.git"
   },
   "keywords": [
-    "laya", "layacmd"
-  ],  
+    "laya",
+    "layacmd",
+    "laya-ver",
+    "layabox",
+    "layaair"
+  ],
   "bin": {
     "laya-ver": "./bin/laya-ver"
   },
